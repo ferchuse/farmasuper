@@ -1,0 +1,123 @@
+<?php 
+	include("../conexi.php");
+	$link = Conectarse();
+	
+	
+	$id_turnos = $_POST['id_turnos'];
+	$listaProductos = $_POST['productos'];
+	
+	$estatus_compras = $_POST["entrada_inventario"] == "true" ? "FINALIZADA" :  "PENDIENTE";
+	
+	
+	$insertar = "INSERT INTO compras SET
+	id_compras = '{$_POST["id_compras"]}',
+	id_usuarios = '{$_POST['id_usuarios']}',
+	fecha_compras = NOW(),
+	total_compras = '{$_POST["total"]}',
+	estatus_compras = '$estatus_compras',
+	id_proveedores = '{$_POST["id_proveedores"]}'
+	
+	ON DUPLICATE KEY UPDATE
+	
+	id_usuarios = '{$_POST['id_usuarios']}',
+	fecha_compras = NOW(),
+	total_compras = '{$_POST["total"]}',
+	id_proveedores = '{$_POST["id_proveedores"]}',
+	estatus_compras = '$estatus_compras'
+	";
+	
+	$exec_query = mysqli_query($link,$insertar);
+	
+	$respuesta["insertar"] = $insertar;
+	
+	if($exec_query){
+		$respuesta["estatus_venta"] = "success";
+		$respuesta["mensaje_venta"] = "Venta Guardada";
+		$respuesta["folio_venta"] = mysqli_insert_id($link);
+		
+		$id_ventas = mysqli_insert_id($link);
+		$respuesta["id_ventas"] = $id_ventas;
+	}
+	else{
+		$respuesta["estatus_venta"] = "error";
+		$respuesta["mensaje_venta"] = "Error en Insertar: $insertar  ".mysqli_error($link);	
+		
+	}
+	
+	
+	//Borrar compras detalle anterior
+	
+	
+	$consulta = "DELETE FROM compras_detalle WHERE id_compras = {$_POST["id_compras"]}";
+	
+	$result = mysqli_query($link,$consulta);
+	
+	
+	if($result){
+		$respuesta["estatus_borrar"] = "success";
+		$respuesta["mensaje_borrar"] = "Compras detalle borrado";
+	}
+	else{
+		$respuesta["estatus_borrar"] = "error";
+		$respuesta["mensaje_borrar"] = "Error en  $consulta  ".mysqli_error($link);	
+		
+	}
+	
+	//Inserta productos en compras_detalle
+	
+	foreach($listaProductos as $indice => $producto){
+		$insertarVentasDetalle = "INSERT INTO compras_detalle SET
+		id_compras = '$id_ventas',
+		id_productos = '$producto[id_productos]',
+		unidad_productos = '$producto[unidad_productos]',
+		cantidad = '$producto[cantidad]',
+		precio = '$producto[precio]',
+		descripcion = '$producto[descripcion]',
+		importe = '$producto[importe]'
+		";
+		
+		$exec_query = mysqli_query($link, $insertarVentasDetalle);
+		
+		if($exec_query){
+			$respuesta['estatus_detalle'] = 'success';
+			$respuesta['mensaje_detalle'] = 'Compra Detalle guardado';
+			$id_compras = mysqli_insert_id($link);
+			}else{
+			$respuesta['estatus_detalle'] = 'error';
+			$respuesta['mensaje_detalle'] = "Error al guardar Ventas Detalle $insertarVentasDetalle ".mysqli_error($link);
+		}
+		
+		$cambia_costo = "UPDATE productos 
+		SET costo_proveedor = {$producto["precio"]}
+		
+		WHERE id_productos = {$producto["id_productos"]}
+		";
+		
+		$result_costo = mysqli_query( $link, $cambia_costo );
+		
+		$respuesta["result_costo"] = $result_costo."-".mysqli_error($link) ;
+		
+		//actualiza existencias solo si se activa casilla de entrada a inventarios
+		
+		
+		if($_POST["entrada_inventario"] == "true"){
+		
+			
+		
+			$update_existencia = "UPDATE productos 
+			SET 
+			existencia_productos = existencia_productos + ({$producto["cantidad"]} * piezas)
+			WHERE id_productos = '{$producto["id_productos"]}'	"; 
+			
+			$result_existencia = mysqli_query( $link, $update_existencia );
+			
+			$respuesta["update_existencia"] = $update_existencia ;
+			$respuesta["result_existencia"] = $result_existencia ;
+			$respuesta["mensaje_existencia"] = mysqli_error($link) ;
+		}
+		
+		
+	}
+	
+	echo json_encode($respuesta);
+?>

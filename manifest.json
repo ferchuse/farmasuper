@@ -1,0 +1,21 @@
+{
+	"short_name": "FarmaSuper",
+	"name": "FarmaSuper",
+	"lang": "es",
+	"description": "FarmaSuper",
+	"start_url": "./corte/resumen.php",
+	"background_color": "#59bee3",
+	"theme_color": "#00aae7",
+	"dir": "ltr",
+	"display": "standalone",
+	"orientation": "any",
+	"icons": [
+		{
+			"src": "img/icons/android-icon-192x192-dunplab-manifest-11308.png",
+			"type": "image/png",
+			"sizes": "192x192"
+		}
+		
+	],
+	"prefer_related_applications": "false"
+}
